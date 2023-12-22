@@ -2,10 +2,14 @@ from pathlib import Path
 from unidecode import unidecode
 import pickle
 import streamlit as st
+import time
 
 
 PASTA_MENSAGENS = Path(__file__).parent / "mensagens"
 PASTA_MENSAGENS.mkdir(exist_ok=True)
+
+PASTA_USUARIOS = Path(__file__).parent / "usuarios"
+PASTA_USUARIOS.mkdir(exist_ok=True)
 
 
 def ler_mensagens_armazenadas(usuario_logado, conversando_com):
@@ -65,12 +69,66 @@ def pagina_login():
     with tab1.form(key="login"):
         nome = st.text_input("Digite seu nome de usuario")
         senha = st.text_input("Digite sua senha")
-        st.form_submit_button("Entrar")
+        if st.form_submit_button("Entrar"):
+            _login_usuario(nome, senha)
 
     with tab2.form(key="cadastrar"):
         nome = st.text_input("Cadastre seu nome de usuario")
         senha = st.text_input("Cadastre sua senha")
-        st.form_submit_button("Cadastrar")
+        if st.form_submit_button("Cadastrar"):
+            _cadastrar_usuario(nome, senha)
+
+
+def _login_usuario(nome, senha):
+    if validacao_de_senha(nome, senha):
+        st.success("Login efetuado com sucesso!")
+        time.sleep(2)
+        st.session_state["usuario_logado"] = nome.upper()
+        mudar_pagina("chat")
+        st.rerun()
+    else:
+        st.error("Erro ao logar")
+
+
+def _cadastrar_usuario(nome, senha):
+    if salvar_novo_usuario(nome, senha):
+        st.success("Usuário cadastrado com sucesso!")
+        time.sleep(2)
+        st.session_state["usuario_logado"] = nome.upper()
+        mudar_pagina("chat")
+        st.rerun()
+    else:
+        st.error("Erro ao cadastrar usuário")
+
+
+def mudar_pagina(nome_pagina):
+    st.session_state["pagina_atual"] = nome_pagina
+
+
+def salvar_novo_usuario(nome, senha):
+    nome_arquivo = unidecode(nome.replace(" ", "_").lower())
+
+    if (PASTA_USUARIOS / nome_arquivo).exists():
+        return False
+    else:
+        with open(PASTA_USUARIOS / nome_arquivo, "wb") as f:
+            pickle.dump({"nome_usuario": nome, "senha": senha}, f)
+        return True
+
+
+def validacao_de_senha(nome, senha):
+    nome_arquivo = unidecode(nome.replace(" ", "_").lower())
+
+    if not (PASTA_USUARIOS / nome_arquivo).exists():
+        return False
+    else:
+        with open(PASTA_USUARIOS / nome_arquivo, "rb") as f:
+            arquivo_senha = pickle.load(f)
+
+        if arquivo_senha["senha"] == senha:
+            return True
+        else:
+            return False
 
 
 def pagina_chat():
@@ -80,7 +138,7 @@ def pagina_chat():
     st.title("📨 WebChat - Streamlit Messenger")
     st.divider()
 
-    usuario_logado = "ROBSON"
+    usuario_logado = st.session_state["usuario_logado"]
     conversando_com = "JUNIOR"
     mensagens = ler_mensagens_armazenadas(usuario_logado, conversando_com)
 
@@ -108,9 +166,16 @@ def pagina_chat():
         armazenar_mensagens(usuario_logado, conversando_com, mensagens)
 
 
-def main():
+def inicializacao():
     if not "pagina_atual" in st.session_state:
-        st.session_state["pagina_atual"] = "login"
+        mudar_pagina("login")
+
+    if not "usuario_logado" in st.session_state:
+        st.session_state["usuario_logado"] = ""
+
+
+def main():
+    inicializacao()
 
     if st.session_state["pagina_atual"] == "login":
         pagina_login()
