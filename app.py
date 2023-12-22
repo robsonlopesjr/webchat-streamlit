@@ -56,11 +56,28 @@ def nome_arquivo_armazenado(usuario_logado, conversando_com):
 
     return nome_arquivo
 
+
+def pagina_login():
+    st.header("📨 Bem-vindo ao WebChat", divider=True)
+
+    tab1, tab2 = st.tabs(["Entrar", "Cadastrar"])
+
+    with tab1.form(key="login"):
+        nome = st.text_input("Digite seu nome de usuario")
+        senha = st.text_input("Digite sua senha")
+        st.form_submit_button("Entrar")
+
+    with tab2.form(key="cadastrar"):
+        nome = st.text_input("Cadastre seu nome de usuario")
+        senha = st.text_input("Cadastre sua senha")
+        st.form_submit_button("Cadastrar")
+
+
 def pagina_chat():
     """
     Função principal para mostrar as mensagens
     """
-    st.title("📨 WebChat - Streamlit")
+    st.title("📨 WebChat - Streamlit Messenger")
     st.divider()
 
     usuario_logado = "ROBSON"
@@ -92,7 +109,13 @@ def pagina_chat():
 
 
 def main():
-    pagina_chat()
+    if not "pagina_atual" in st.session_state:
+        st.session_state["pagina_atual"] = "login"
+
+    if st.session_state["pagina_atual"] == "login":
+        pagina_login()
+    elif st.session_state["pagina_atual"] == "chat":
+        pagina_chat()
 
 
 if __name__ == "__main__":
